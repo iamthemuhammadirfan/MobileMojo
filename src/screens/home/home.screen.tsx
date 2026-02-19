@@ -1,6 +1,5 @@
 import { Text } from "react-native";
-import { Column } from "@/components";
-import { ThemeToggleButton } from "@/components";
+import { Column, ThemeToggleButton } from "@/components";
 import { useTheme } from "@/theme";
 
 export default function HomeScreen() {

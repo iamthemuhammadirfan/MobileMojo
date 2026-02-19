@@ -1,27 +1,25 @@
 import Feather from "@expo/vector-icons/Feather";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
-import { useTheme } from "@/theme";
-import { useThemeTransition } from "@/theme";
+import { Pressable } from "react-native";
+import { useTheme, useThemeTransition } from "@/theme";
 
 export function ThemeToggleButton() {
   const { colors, resolved } = useTheme();
   const { toggle, active } = useThemeTransition();
 
-  const tap = Gesture.Tap()
-    .runOnJS(true)
-    .onStart((e) => {
-      if (!active) {
-        toggle(e.absoluteX, e.absoluteY);
-      }
-    });
-
   return (
-    <GestureDetector gesture={tap}>
+    <Pressable
+      onPress={(e) => {
+        if (!active) {
+          toggle(e.nativeEvent.pageX, e.nativeEvent.pageY);
+        }
+      }}
+      hitSlop={16}
+    >
       <Feather
         name={resolved === "light" ? "moon" : "sun"}
         color={colors.text.primary}
         size={32}
       />
-    </GestureDetector>
+    </Pressable>
   );
 }

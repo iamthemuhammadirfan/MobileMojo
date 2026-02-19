@@ -14,7 +14,7 @@ import {
   useReducer,
   useRef,
 } from "react";
-import { Dimensions, StyleSheet, View, useColorScheme } from "react-native";
+import { Dimensions, Platform, StyleSheet, View, useColorScheme } from "react-native";
 import { useDerivedValue, useSharedValue, withTiming } from "react-native-reanimated";
 import { useAppDispatch, useAppSelector, setThemeMode } from "@/store";
 import type { ThemeMode } from "@/theme";
@@ -76,6 +76,9 @@ export function ThemeTransitionProvider({ children }: { children: ReactNode }) {
   const transition = useSharedValue(0);
   const r = useDerivedValue(() => transition.value * maxRadius.value);
 
+  // Android renders slower — give it two frames instead of one
+  const frameWait = Platform.OS === "android" ? 32 : 16;
+
   const toggle = useCallback(
     async (tapX: number, tapY: number) => {
       const resolved = mode === "system" ? (systemScheme ?? "light") : mode;
@@ -85,61 +88,70 @@ export function ThemeTransitionProvider({ children }: { children: ReactNode }) {
       cy.value = tapY;
       maxRadius.value = maxCornerDistance(tapX, tapY);
 
-      // 1. Activate overlay (nothing shown yet)
-      setState({ active: true, overlay1: null, overlay2: null });
+      try {
+        setState({ active: true, overlay1: null, overlay2: null });
 
-      // 2. Capture current theme screenshot
-      const overlay1 = await makeImageFromView(ref);
-      setState({ active: true, overlay1, overlay2: null });
+        const overlay1 = await makeImageFromView(ref);
+        if (!overlay1) throw new Error("makeImageFromView returned null");
+        setState({ active: true, overlay1, overlay2: null });
 
-      // 3. Switch theme in Redux — renders new theme under the overlay
-      await wait(16);
-      dispatch(setThemeMode(nextMode));
-      await wait(16);
+        await wait(frameWait);
+        dispatch(setThemeMode(nextMode));
+        await wait(frameWait);
 
-      // 4. Capture new theme screenshot
-      const overlay2 = await makeImageFromView(ref);
-      setState({ active: true, overlay1, overlay2 });
+        const overlay2 = await makeImageFromView(ref);
+        if (!overlay2) throw new Error("makeImageFromView returned null");
+        setState({ active: true, overlay1, overlay2 });
 
-      // 5. Animate circular reveal
-      transition.value = 0;
-      transition.value = withTiming(1, { duration: 650 });
-      await wait(650);
-
-      // 6. Clean up
-      setState({ active: false, overlay1: null, overlay2: null });
+        transition.value = 0;
+        transition.value = withTiming(1, { duration: 650 });
+        await wait(650);
+      } catch {
+        dispatch(setThemeMode(nextMode));
+      } finally {
+        setState({ active: false, overlay1: null, overlay2: null });
+      }
     },
-    [cx, cy, dispatch, maxRadius, mode, systemScheme, transition]
+    [cx, cy, dispatch, frameWait, maxRadius, mode, systemScheme, transition]
   );
 
   return (
     <ThemeTransitionContext.Provider value={{ toggle, active: state.active }}>
       <View style={styles.container}>
-        <View ref={ref} style={styles.container} collapsable={false}>
+        <View
+          ref={ref}
+          style={styles.container}
+          collapsable={false}
+          renderToHardwareTextureAndroid
+        >
           {children}
         </View>
-        <Canvas style={StyleSheet.absoluteFill} pointerEvents="none">
-          <SkiaImage
-            image={state.overlay1}
-            x={0}
-            y={0}
-            width={width}
-            height={height}
-            fit="cover"
-          />
-          {state.overlay2 && (
-            <Circle cx={cx} cy={cy} r={r}>
-              <ImageShader
-                image={state.overlay2}
+        {state.active && (
+          <Canvas style={StyleSheet.absoluteFill} pointerEvents="none">
+            {state.overlay1 && (
+              <SkiaImage
+                image={state.overlay1}
                 x={0}
                 y={0}
                 width={width}
                 height={height}
                 fit="cover"
               />
-            </Circle>
-          )}
-        </Canvas>
+            )}
+            {state.overlay2 && (
+              <Circle cx={cx} cy={cy} r={r}>
+                <ImageShader
+                  image={state.overlay2}
+                  x={0}
+                  y={0}
+                  width={width}
+                  height={height}
+                  fit="cover"
+                />
+              </Circle>
+            )}
+          </Canvas>
+        )}
       </View>
     </ThemeTransitionContext.Provider>
   );
