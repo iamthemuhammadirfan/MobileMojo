@@ -1,29 +1,26 @@
-import { StyleSheet, Text, View } from "react-native";
+import { Text } from "react-native";
+import { Column } from "@/components";
+import { ThemeToggleButton } from "@/components";
+import { useTheme } from "@/theme";
 
 export default function HomeScreen() {
+  const { colors } = useTheme();
+
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Welcome to MobileMojo</Text>
-      <Text style={styles.subtitle}>Start building your app here!</Text>
-    </View>
+    <Column
+      flex={1}
+      backgroundColor={colors.background}
+      alignItems="center"
+      justifyContent="center"
+      gap={24}
+    >
+      <Text style={{ fontSize: 24, fontWeight: "bold", color: colors.text.primary }}>
+        Welcome to MobileMojo
+      </Text>
+      <Text style={{ fontSize: 16, color: colors.text.secondary }}>
+        Start building your app here!
+      </Text>
+      <ThemeToggleButton />
+    </Column>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 10,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: "#666",
-  },
-});
