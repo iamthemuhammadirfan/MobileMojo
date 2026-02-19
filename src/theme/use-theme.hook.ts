@@ -1,6 +1,7 @@
 import { useColorScheme } from "react-native";
 import { useAppSelector } from "@/store";
 import { lightColors, darkColors } from "./colors";
+import type { ThemeColors } from "./colors";
 import type { ResolvedTheme } from "./theme.types";
 
 export function useTheme() {
@@ -10,7 +11,7 @@ export function useTheme() {
   const resolved: ResolvedTheme =
     mode === "system" ? (systemScheme ?? "light") : mode;
 
-  const colors = resolved === "dark" ? darkColors : lightColors;
+  const colors: ThemeColors = resolved === "dark" ? darkColors : lightColors;
 
   return { colors, mode, resolved } as const;
 }
