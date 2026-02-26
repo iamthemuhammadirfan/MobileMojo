@@ -9,7 +9,7 @@ export function useTheme() {
   const mode = useAppSelector((state) => state.appSettings.theme);
 
   const resolved: ResolvedTheme =
-    mode === "system" ? (systemScheme ?? "light") : mode;
+    mode === "system" ? (systemScheme === "dark" ? "dark" : "light") : mode;
 
   const colors: ThemeColors = resolved === "dark" ? darkColors : lightColors;
 
