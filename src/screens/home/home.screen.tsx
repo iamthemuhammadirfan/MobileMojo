@@ -11,7 +11,7 @@ export default function HomeScreen() {
       backgroundColor="background"
       alignItems="center"
       justifyContent="center"
-      gap={24}
+      gap="xl"
     >
       <Text
         style={{ fontSize: 24, fontWeight: "bold", color: colors.text.primary }}

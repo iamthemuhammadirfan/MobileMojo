@@ -14,9 +14,20 @@ import {
   useReducer,
   useRef,
 } from "react";
-import { Dimensions, Platform, StyleSheet, View, useColorScheme } from "react-native";
-import { useDerivedValue, useSharedValue, withTiming } from "react-native-reanimated";
-import { useAppDispatch, useAppSelector, setThemeMode } from "@/store";
+import {
+  Dimensions,
+  Platform,
+  StyleSheet,
+  View,
+  useColorScheme,
+} from "react-native";
+import {
+  Easing,
+  useDerivedValue,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
+import { store, useAppDispatch, setThemeMode } from "@/store";
 import type { ThemeMode } from "@/theme";
 
 const { width, height } = Dimensions.get("screen");
@@ -59,11 +70,18 @@ export function useThemeTransition() {
   return ctx;
 }
 
+const ANIMATION_DURATION = 650;
+const ANIMATION_EASING = Easing.out(Easing.cubic);
+const FRAME_WAIT = Platform.OS === "android" ? 32 : 16;
+
 export function ThemeTransitionProvider({ children }: { children: ReactNode }) {
   const dispatch = useAppDispatch();
-  const mode = useAppSelector((state) => state.appSettings.theme);
-  const systemScheme = useColorScheme();
   const ref = useRef<View>(null);
+
+  // Read via ref so changes don't re-render this provider
+  const systemScheme = useColorScheme();
+  const systemSchemeRef = useRef(systemScheme);
+  systemSchemeRef.current = systemScheme;
 
   const [state, setState] = useReducer(
     (_: AnimationState, next: AnimationState) => next,
@@ -76,12 +94,12 @@ export function ThemeTransitionProvider({ children }: { children: ReactNode }) {
   const transition = useSharedValue(0);
   const r = useDerivedValue(() => transition.value * maxRadius.value);
 
-  // Android renders slower — give it two frames instead of one
-  const frameWait = Platform.OS === "android" ? 32 : 16;
-
   const toggle = useCallback(
     async (tapX: number, tapY: number) => {
-      const resolved = mode === "system" ? (systemScheme ?? "light") : mode;
+      // Read from store — no useAppSelector means dispatching setThemeMode
+      // will NOT re-render this provider mid-animation
+      const mode = store.getState().appSettings.theme;
+      const resolved = mode === "system" ? (systemSchemeRef.current === "dark" ? "dark" : "light") : mode;
       const nextMode: ThemeMode = resolved === "light" ? "dark" : "light";
 
       cx.value = tapX;
@@ -89,41 +107,42 @@ export function ThemeTransitionProvider({ children }: { children: ReactNode }) {
       maxRadius.value = maxCornerDistance(tapX, tapY);
 
       try {
-        setState({ active: true, overlay1: null, overlay2: null });
-
+        // Capture overlay1 BEFORE mounting Canvas — saves one empty-Canvas render
         const overlay1 = await makeImageFromView(ref);
-        if (!overlay1) throw new Error("makeImageFromView returned null");
+        if (!overlay1) throw new Error("makeImageFromView returned null (overlay1)");
+
+        // Canvas mounts already showing overlay1 — 1 render, not 2
         setState({ active: true, overlay1, overlay2: null });
 
-        await wait(frameWait);
+        await wait(FRAME_WAIT);
         dispatch(setThemeMode(nextMode));
-        await wait(frameWait);
+        await wait(FRAME_WAIT);
 
         const overlay2 = await makeImageFromView(ref);
-        if (!overlay2) throw new Error("makeImageFromView returned null");
+        if (!overlay2) throw new Error("makeImageFromView returned null (overlay2)");
+
+        // Both images ready — start animation
         setState({ active: true, overlay1, overlay2 });
 
         transition.value = 0;
-        transition.value = withTiming(1, { duration: 650 });
-        await wait(650);
+        transition.value = withTiming(1, {
+          duration: ANIMATION_DURATION,
+          easing: ANIMATION_EASING,
+        });
+        await wait(ANIMATION_DURATION);
       } catch {
         dispatch(setThemeMode(nextMode));
       } finally {
         setState({ active: false, overlay1: null, overlay2: null });
       }
     },
-    [cx, cy, dispatch, frameWait, maxRadius, mode, systemScheme, transition]
+    [cx, cy, dispatch, maxRadius, transition]
   );
 
   return (
     <ThemeTransitionContext.Provider value={{ toggle, active: state.active }}>
       <View style={styles.container}>
-        <View
-          ref={ref}
-          style={styles.container}
-          collapsable={false}
-          renderToHardwareTextureAndroid
-        >
+        <View ref={ref} style={styles.container} collapsable={false}>
           {children}
         </View>
         {state.active && (
@@ -135,7 +154,7 @@ export function ThemeTransitionProvider({ children }: { children: ReactNode }) {
                 y={0}
                 width={width}
                 height={height}
-                fit="cover"
+                fit="fill"
               />
             )}
             {state.overlay2 && (
@@ -146,7 +165,7 @@ export function ThemeTransitionProvider({ children }: { children: ReactNode }) {
                   y={0}
                   width={width}
                   height={height}
-                  fit="cover"
+                  fit="fill"
                 />
               </Circle>
             )}

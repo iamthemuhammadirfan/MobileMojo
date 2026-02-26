@@ -1,5 +1,5 @@
-import type { ThemeColor, ThemeColors } from "@/theme";
-import { resolveThemeColor, useTheme } from "@/theme";
+import type { ThemeColor, ThemeColors, SpacingKey } from "@/theme";
+import { resolveThemeColor, resolveSpacing, useTheme } from "@/theme";
 import { StyleProp, View, ViewProps, ViewStyle } from "react-native";
 
 function resolveColor(
@@ -10,6 +10,11 @@ function resolveColor(
   return resolveThemeColor(value, colors);
 }
 
+function rs(key: SpacingKey | undefined): number | undefined {
+  if (key === undefined) return undefined;
+  return resolveSpacing(key);
+}
+
 type ColorKeys =
   | "backgroundColor"
   | "borderColor"
@@ -18,6 +23,25 @@ type ColorKeys =
   | "borderLeftColor"
   | "borderRightColor"
   | "shadowColor";
+
+type SpacingStyleKeys =
+  | "gap"
+  | "rowGap"
+  | "columnGap"
+  | "padding"
+  | "paddingTop"
+  | "paddingBottom"
+  | "paddingLeft"
+  | "paddingRight"
+  | "paddingHorizontal"
+  | "paddingVertical"
+  | "margin"
+  | "marginTop"
+  | "marginBottom"
+  | "marginLeft"
+  | "marginRight"
+  | "marginHorizontal"
+  | "marginVertical";
 
 type BoxStyleProps = Omit<
   Pick<
@@ -95,8 +119,9 @@ type BoxStyleProps = Omit<
     // Shadow (Android)
     | "elevation"
   >,
-  ColorKeys
+  ColorKeys | SpacingStyleKeys
 > & {
+  // Color props — ThemeColor keys only (e.g. "background", "text.primary")
   backgroundColor?: ThemeColor;
   borderColor?: ThemeColor;
   borderTopColor?: ThemeColor;
@@ -104,6 +129,24 @@ type BoxStyleProps = Omit<
   borderLeftColor?: ThemeColor;
   borderRightColor?: ThemeColor;
   shadowColor?: ThemeColor;
+  // Spacing props — SpacingKey tokens only (e.g. "lg", "xl")
+  gap?: SpacingKey;
+  rowGap?: SpacingKey;
+  columnGap?: SpacingKey;
+  padding?: SpacingKey;
+  paddingTop?: SpacingKey;
+  paddingBottom?: SpacingKey;
+  paddingLeft?: SpacingKey;
+  paddingRight?: SpacingKey;
+  paddingHorizontal?: SpacingKey;
+  paddingVertical?: SpacingKey;
+  margin?: SpacingKey;
+  marginTop?: SpacingKey;
+  marginBottom?: SpacingKey;
+  marginLeft?: SpacingKey;
+  marginRight?: SpacingKey;
+  marginHorizontal?: SpacingKey;
+  marginVertical?: SpacingKey;
 };
 
 export type BoxProps = BoxStyleProps &
@@ -201,23 +244,23 @@ export function Box({
           alignSelf,
           alignContent,
           justifyContent,
-          gap,
-          rowGap,
-          columnGap,
-          padding,
-          paddingTop,
-          paddingBottom,
-          paddingLeft,
-          paddingRight,
-          paddingHorizontal,
-          paddingVertical,
-          margin,
-          marginTop,
-          marginBottom,
-          marginLeft,
-          marginRight,
-          marginHorizontal,
-          marginVertical,
+          gap:            rs(gap),
+          rowGap:         rs(rowGap),
+          columnGap:      rs(columnGap),
+          padding:        rs(padding),
+          paddingTop:     rs(paddingTop),
+          paddingBottom:  rs(paddingBottom),
+          paddingLeft:    rs(paddingLeft),
+          paddingRight:   rs(paddingRight),
+          paddingHorizontal: rs(paddingHorizontal),
+          paddingVertical:   rs(paddingVertical),
+          margin:         rs(margin),
+          marginTop:      rs(marginTop),
+          marginBottom:   rs(marginBottom),
+          marginLeft:     rs(marginLeft),
+          marginRight:    rs(marginRight),
+          marginHorizontal: rs(marginHorizontal),
+          marginVertical:   rs(marginVertical),
           width,
           height,
           minWidth,
@@ -235,11 +278,11 @@ export function Box({
           borderBottomWidth,
           borderLeftWidth,
           borderRightWidth,
-          borderColor: resolveColor(borderColor, colors),
-          borderTopColor: resolveColor(borderTopColor, colors),
+          borderColor:       resolveColor(borderColor, colors),
+          borderTopColor:    resolveColor(borderTopColor, colors),
           borderBottomColor: resolveColor(borderBottomColor, colors),
-          borderLeftColor: resolveColor(borderLeftColor, colors),
-          borderRightColor: resolveColor(borderRightColor, colors),
+          borderLeftColor:   resolveColor(borderLeftColor, colors),
+          borderRightColor:  resolveColor(borderRightColor, colors),
           borderStyle,
           position,
           top,
@@ -250,7 +293,7 @@ export function Box({
           opacity,
           overflow,
           transform,
-          shadowColor: resolveColor(shadowColor, colors),
+          shadowColor:   resolveColor(shadowColor, colors),
           shadowOffset,
           shadowOpacity,
           shadowRadius,
