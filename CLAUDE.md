@@ -46,7 +46,7 @@ src/
       light.colors.ts   # lightColors token object
       dark.colors.ts    # darkColors token object
       colors.types.ts   # ThemeColors interface, ThemeColor union, resolveThemeColor()
-    theme-transition/   # ThemeTransitionProvider — Telegram-style circular reveal animation
+    theme-transition/   # ThemeTransitionProvider + useThemeTransition()
     theme.types.ts      # ThemeMode ("light" | "dark" | "system"), ResolvedTheme ("light" | "dark")
     use-theme.hook.ts   # useTheme() → { colors, mode, resolved }
   services/          # API / external service calls (*.service.ts)
@@ -109,6 +109,8 @@ All valid keys are listed in `ThemeColor` in `src/theme/colors/colors.types.ts`.
 
 - `toggle(x, y)` is exposed via `useThemeTransition()` — call it with the press coordinates
 - The Skia `Canvas` is only mounted while the animation is active to avoid blocking touches on Android
+
+> **SDK 55 note:** Do NOT add `@react-navigation/*` packages as direct dependencies in `package.json`. `expo-router` provides them at the correct versions transitively. Duplicate copies of `@react-navigation/native` will cause a "Couldn't find the prevent remove context" crash at startup.
 
 ### Redux store
 
